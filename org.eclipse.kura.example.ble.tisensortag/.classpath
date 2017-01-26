@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
+	<classpathentry exported="true" kind="lib" path="lib/mongo-java-driver-3.4.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/org.json.jar"/>
+	<classpathentry kind="lib" path="lib/jdom-2.0.4.jar"/>
+	<classpathentry kind="output" path="target/classes"/>
+</classpath>
