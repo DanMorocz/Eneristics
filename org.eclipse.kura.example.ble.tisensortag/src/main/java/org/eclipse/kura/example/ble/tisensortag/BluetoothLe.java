@@ -57,7 +57,9 @@ public class BluetoothLe implements ConfigurableComponent, CloudClientListener, 
 	
 	public static final String MONGO_READINGS_DB = "readings";
 	public static final String MONGO_WEATHER_COLLECTION = "weather";
-
+	public static final String MONGO_DBJSON_COLLECTION = "dbjson";
+	private static final String MONGO_INSERT_TIME_KEY = "insert_time";
+	
     private static final Logger s_logger = LoggerFactory.getLogger(BluetoothLe.class);
 
     private final String APP_ID = "BLE_APP_V1";
@@ -792,6 +794,10 @@ public class BluetoothLe implements ConfigurableComponent, CloudClientListener, 
                          
                          m_cloudClient.publish(m_topic + "/" + myTiSensorTag.getBluetoothDevice().getAdress(), getLastWeatherBytes(),
                                  0, false, 0);
+                         
+                         //UPDATE: Publish dbjson to AWS
+                         m_cloudClient.publish(m_topic + "/" + "<DBJASON TOPIC NAME>", getLastDBJSONBytes(),
+                                 0, false, 0);
                      
                           
                     /* s_logger.info("**** PUBLISHING PLAIN TEXT WEATHER *******v1 ");
@@ -821,11 +827,48 @@ public class BluetoothLe implements ConfigurableComponent, CloudClientListener, 
             } else {
                 s_logger.info("Cannot connect to TI SensorTag " + myTiSensorTag.getBluetoothDevice().getAdress() + ".");
             }
-
         }
-
     }
     
+    /**
+     * @author Dan Morocz
+     * @return byte[] of the most recent item in the dbjson collection.
+     */
+    private byte[] getLastDBJSONBytes() {
+    	MongoClient mongo = StaticMongo.getInstance(s_logger);
+		DB db = new DB(mongo, MONGO_READINGS_DB);
+		JSONObject document = new JSONObject();
+		
+		//public Cursor aggregate(List<? extends DBObject> pipeline, AggregationOptions options)
+		//DBCursor lastThreePolls = new DBCursor(db.getCollection(SENSOR_COLLECTION), DBObject query, DBObject fields, ReadPreference readPreference);
+			
+		BasicDBObject queryParams = new BasicDBObject();
+		queryParams.append(MONGO_INSERT_TIME_KEY, -1);
+		DBCursor polls = db.getCollection(MONGO_DBJSON_COLLECTION).find().sort( queryParams );
+		
+		//get the most recent poll from the collection
+		int counter = 0;
+		String output = "";
+		int numPolls = 1;
+		while(polls.hasNext() && counter++<numPolls) {
+			DBObject obj = polls.next();
+			
+			try {
+	        	document.put("sensortags", (obj.get("sensortags")).toString());
+	        	document.put("weather", (obj.get("weather")).toString());
+	        	document.put(MONGO_INSERT_TIME_KEY, (obj.get(MONGO_INSERT_TIME_KEY)).toString());	        	
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return document.toString().getBytes(StandardCharsets.UTF_8);
+	}
+    
+    /**
+     * @author Dan Morocz
+     * @return byte[] of the most recent fetch of weather data in the mondoDB weather collection.
+     */
     private byte[] getLastWeatherBytes() {
     	MongoClient mongo = StaticMongo.getInstance(s_logger);
 		DB db = new DB(mongo, MONGO_READINGS_DB);
